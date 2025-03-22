@@ -210,11 +210,11 @@ int main(int argc, char** argv) {
     cout << "Temps d'exécution de la FFT (CPU): " << duration.count() << " ms" << endl;
     
     // Afficher quelques résultats (magnitudes des 10 premières bins)
-    cout << "Résultats FFT (10 premières bins) :" << endl;
-    for (size_t i = 0; i < min(N, size_t(10)); i++) {
-        double magnitude = sqrt(outputFFT[i].Re * outputFFT[i].Re + outputFFT[i].Im * outputFFT[i].Im);
-        cout << "Bin " << i << ": " << magnitude << endl;
-    }
+    // cout << "Résultats FFT (10 premières bins) :" << endl;
+    // for (size_t i = 0; i < min(N, size_t(10)); i++) {
+    //     double magnitude = sqrt(outputFFT[i].Re * outputFFT[i].Re + outputFFT[i].Im * outputFFT[i].Im);
+    //     cout << "Bin " << i << ": " << magnitude << endl;
+    // }
     
     delete[] inputSignal;
     delete[] outputFFT;
