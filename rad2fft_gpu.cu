@@ -160,11 +160,11 @@ int main(int argc, char** argv) {
     cudaMemcpy(h_result, d_signal, sizeof(cufftDoubleComplex)*N, cudaMemcpyDeviceToHost);
     
     // Afficher quelques résultats (magnitudes des 10 premières bins)
-    cout << "Résultats FFT (10 premières bins) :" << endl;
-    for (size_t i = 0; i < min(N, size_t(10)); i++) {
-        double magnitude = sqrt(h_result[i].x * h_result[i].x + h_result[i].y * h_result[i].y);
-        cout << "Bin " << i << ": " << magnitude << endl;
-    }
+    // cout << "Résultats FFT (10 premières bins) :" << endl;
+    // for (size_t i = 0; i < min(N, size_t(10)); i++) {
+    //     double magnitude = sqrt(h_result[i].x * h_result[i].x + h_result[i].y * h_result[i].y);
+    //     cout << "Bin " << i << ": " << magnitude << endl;
+    // }
     
     // Libération des ressources
     cufftDestroy(plan);
