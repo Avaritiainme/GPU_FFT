@@ -11,6 +11,7 @@
 - [ ] Faire le PowerPoint 
 
 | Version | Device | Temps moyens sur 10 itérations |
+|:-------|:---:|----------:|
 |  Numpy  |  CPU   | 0,0957913 s |
 | Pytorch |  GPU   | 0,0005969 s |
 | Notre version | CPU | 8,6751132 s|
