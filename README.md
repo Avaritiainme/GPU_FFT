@@ -14,7 +14,8 @@
 |:-------|:---:|:----------:|---------:|
 |  Numpy  |  CPU   | 3.172216 s |3.212742 s|
 | Pytorch |  GPU   | 0.220442 s |0.093029 s|
-| Notre version | CPU |  141.677660 s| 0.569570 s|
+| Notre version récursive| CPU |  141.677660 s| 0.569570 s|
+| Notre version itérative| CPU |  0.996789 s| 0.552342 s|
 | Notre version | GPU |  0.957862 s| 0.529159 s|
 
 
