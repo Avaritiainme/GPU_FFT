@@ -4,7 +4,7 @@ import time
 import matplotlib.pyplot as plt
 
 #Charger audio
-rate, data = wav.read("audiocut.wav")
+rate, data = wav.read("audio.wav")
 if data.ndim > 1:
     data = data[:, 0]
 data = data.astype(np.float32)
@@ -46,8 +46,27 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+# Application du filtre adaptatif pour extraire la voix
+delta = 400  # précision du filtrage
+spec_filtered = fft_result.copy()
+
+# Dans ce cas, le spectre est 1D, on définit la bande de fréquences de la voix sur la totalité du spectre
+bande_voix = (np.abs(freqs) >= 300) & (np.abs(freqs) <= 4000)
+energie_bande = np.abs(fft_result[bande_voix])
+if energie_bande.size == 0 or np.max(energie_bande) < 1e-6:
+    spec_filtered = fft_result * 0.05  # on atténue pour pas mute les endroits sans voix et les perdre
+else:
+    idx_max = np.argmax(energie_bande)
+    freqs_voix = freqs[bande_voix]
+    freq_cible = freqs_voix[idx_max]
+    masque_doux = np.exp(-0.5 * ((freqs - freq_cible) / delta) ** 2)
+    spec_filtered = fft_result * masque_doux
+
 # Reconstruction du signal (IFFT)
-data_time = np.fft.ifft(fft_result)
+start_time = time.time()
+data_time = np.fft.ifft(spec_filtered)
+end_time = time.time()
+print(f"Temps d'exécution de l'IFFT sur CPU (filtré) : {end_time - start_time:.6f} secondes")
 data_time = np.real(data_time)
 data_time /= np.max(np.abs(data_time))
 data_time_int16 = np.int16(data_time * 32767)

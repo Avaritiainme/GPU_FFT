@@ -1,20 +1,21 @@
 # GPU_FFT
 ## To Do
-- [ ] Implémenter la version de nathan (CPU)
-- [ ] Implémenter la version de nathan (GPU)
+- [X] Implémenter la version de nathan (CPU)
+- [X] Implémenter la version de nathan (GPU)
 - [X] Implémenter la version de Pytorch (GPU)
 - [X] Implémenter la version de numpy (CPU)
-- [ ] Implémenter notre version (CPU)
-- [ ] Implémenter notre version (GPU)
-- [ ] Factoriser le code
+- [X] Implémenter notre version (CPU)
+- [X] Implémenter notre version (GPU)
+- [X] Factoriser le code
 - [X] Faire le benchmark 
 - [ ] Faire le PowerPoint 
 
-| Version | Device | Temps moyens sur 10 itérations |
-|:-------|:---:|----------:|
-|  Numpy  |  CPU   | 0,0957913 s |
-| Pytorch |  GPU   | 0,0005969 s |
-| Notre version | CPU | 8,6751132 s|
+| Version | Device | Temps FFT | Temps IFFT|
+|:-------|:---:|:----------:|---------:|
+|  Numpy  |  CPU   | 3.172216 s |3.212742 s|
+| Pytorch |  GPU   | 0.220442 s |0.093029 s|
+| Notre version | CPU |  141.677660 s| 0.569570 s|
+| Notre version | GPU |  0.957862 s| 0.529159 s|
 
 
 

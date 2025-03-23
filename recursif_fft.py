@@ -37,14 +37,15 @@ def fft_glissante_perso(x, fs, nperseg=1024, noverlap=None):
     spectrogram = spectrogram[:len(frequencies), :]
     return frequencies, times, spectrogram
 
-fs, data = wavfile.read("audiocut.wav")
+fs, data = wavfile.read("audio.wav")
 if len(data.shape) > 1:
     data = data[:, 0]  # 
 
+# Mesure du temps d'exécution de la FFT glissante
+start_time = time.time()
 freqs, times, spec = fft_glissante_perso(data, fs, nperseg=1024)
-#print(f"tailles freq: {len(freqs)}, shape du spec: {spec.shape}")
-#print("freq en gros :", freqs[:10])
-
+end_time = time.time()
+print("Temps d'exécution de la FFT glissante : {:.6f} secondes".format(end_time - start_time))
 
 spec_filtered = np.zeros_like(spec, dtype=complex)
 delta = 400  # precision du filtrage 
@@ -75,7 +76,10 @@ plt.colorbar(label="Amplitude (dB)")
 plt.show()
 
 # Reconstruction audio
+start_time = time.time()
 _, voice_only = istft(spec_filtered, fs)
+end_time = time.time()
+print("Temps d'exécution de l'IFFT (ISTFT) : {:.6f} secondes".format(end_time - start_time))
 voice_only = voice_only / np.max(np.abs(voice_only))  
 wavfile.write("voix_extraite_test.wav", fs, (voice_only * 32767).astype(np.int16))
 

@@ -6,7 +6,7 @@ from scipy.io import wavfile
 from scipy.signal import istft
 from numba import cuda, float32, complex64
 
-@cuda.jit #notre seul kernel, c'est la fonction qu'on passe sur le gpu, la fft glissante qui travaille sur nos segments de sons, les "windows"
+@cuda.jit  # notre seul kernel, c'est la fonction qu'on passe sur le GPU, la fft glissante qui travaille sur nos segments de sons, les "windows"
 def fft_kernel(signal, output, nperseg, step):
     i = cuda.grid(1)
     N = nperseg
@@ -19,11 +19,11 @@ def fft_kernel(signal, output, nperseg, step):
         n_temp >>= 1
         bits += 1
 
-    # reserve de la memoire locale pour stocker partie reelle et imaginaire, ici jusqu'a 4096 echantillons par window
+    # réserve de la mémoire locale pour stocker partie réelle et imaginaire, ici jusqu'à 4096 échantillons par window
     real = cuda.local.array(4096, dtype=float32)
     imag = cuda.local.array(4096, dtype=float32)
 
-    # on inverse l'ordre des bits pour preparer au diviser pour regner de cooley turkey 
+    # on inverse l'ordre des bits pour préparer au diviser pour régner de Cooley-Tukey 
     for j in range(N):
         idx = 0
         n = j
@@ -35,7 +35,7 @@ def fft_kernel(signal, output, nperseg, step):
         real[idx] = signal[i * step + j] * window_val
         imag[idx] = 0.0
 
-    # Cooley-Tukey en iteratif
+    # Cooley-Tukey en itératif
     size = 2
     while size <= N:
         half = size // 2
@@ -63,13 +63,13 @@ def fft_kernel(signal, output, nperseg, step):
         output[j, i] = complex64(real[j] + 1j * imag[j])
 
 # charge l'audio 
-fs, data = wavfile.read("audiocut.wav")
+fs, data = wavfile.read("audio.wav")
 if len(data.shape) > 1:
     data = data[:, 0]  # passe en mono 
 
 # listing des paramètres
-nperseg = 4096 # nb de segment, lié a lignes 23-24 parce que c'est la taille d'une window donc d'un thread
-noverlap = nperseg // 2 #chaque fenetre se chevauche de moitie
+nperseg = 4096  # nb de segment, lié aux lignes 23-24 parce que c'est la taille d'une window donc d'un thread
+noverlap = nperseg // 2  # chaque fenêtre se chevauche de moitié
 step = nperseg - noverlap
 n_windows = (len(data) - nperseg) // step + 1
 
@@ -80,18 +80,21 @@ spec_gpu = cuda.device_array((nperseg, n_windows), dtype=np.complex64)
 threads_per_block = 1024
 blocks_per_grid = (n_windows + threads_per_block - 1) // threads_per_block
 
-# on execute nos kernels
+# Mesure du temps d'exécution de la FFT glissante sur GPU
+start_time = time.time()
 fft_kernel[blocks_per_grid, threads_per_block](signal_gpu, spec_gpu, nperseg, step)
 cuda.synchronize()
+end_time = time.time()
+print("Temps d'exécution de la FFT glissante sur GPU : {:.6f} secondes".format(end_time - start_time))
 
-# on recupere le resultat
+# on récupère le résultat
 spec = spec_gpu.copy_to_host()
 freqs = np.fft.fftfreq(nperseg, d=1/fs) 
-freqs = freqs[freqs >= 0] #frequences positives seulement parce que fft crée les deux
+freqs = freqs[freqs >= 0]  # fréquences positives seulement parce que FFT crée les deux
 spec = spec[:len(freqs), :]
 times = np.arange(n_windows) * step / fs
 
-# prepare le tableau pour le spectrogramme filtre
+# prépare le tableau pour le spectrogramme filtré
 spec_filtered = np.zeros_like(spec, dtype=complex)
 
 # nb harmonique pour le second filtre
@@ -99,37 +102,36 @@ n_harmonics = 3
 
 for i in range(spec.shape[1]):
     colonne = spec[:, i]
-    bande_voix = (freqs >= 300) & (freqs <= 2500) # filtre passe bande autour de la voix 
-    energie_bande = np.abs(colonne[bande_voix]) # releve l'amplitude / energie a cet endroit 
+    bande_voix = (freqs >= 300) & (freqs <= 2500)  # filtre passe bande autour de la voix 
+    energie_bande = np.abs(colonne[bande_voix])  # relève l'amplitude / énergie à cet endroit 
 
-    if energie_bande.size == 0 or np.max(energie_bande) < 1e-6: # si pas de voix, on attenue pour pas cut completment et avoir des trous a la reconstruction
+    if energie_bande.size == 0 or np.max(energie_bande) < 1e-6:  # si pas de voix, on atténue pour pas couper complètement et avoir des trous à la reconstruction
         colonne_filtree = colonne * 0.05
     else:
         idx_max = np.argmax(energie_bande)
         freqs_voix = freqs[bande_voix]
-        freq_fondamentale = freqs_voix[idx_max] # la ou l'energie est max on considere qu'on recupere la freq fondamentale
-        
+        freq_fondamentale = freqs_voix[idx_max]  # là où l'énergie est max, on considère qu'on récupère la freq fondamentale
         
         delta_base = 50 + (freq_fondamentale * 0.1)  # largeur du filtre pour la fondamentale
         
-        # on initialise le masque comme pour spec mais a la dim de freqs
+        # on initialise le masque comme pour spec mais à la dimension de freqs
         masque_total = np.zeros_like(freqs, dtype=float)
         
         # puis on boucle sur les x harmoniques choisies 
         for h in range(1, n_harmonics + 1):
             freq_harmonique = freq_fondamentale * h
             
-            # pas d'harmoinique au dela de notre freq max 
+            # pas d'harmonique au-delà de notre freq max 
             if freq_harmonique > freqs[-1]:
                 break
                 
-            # plus une hamronique est élevé plus elle est instable donc on elargit progresivement notre gausienne pour la capturer pleinement
+            # plus une harmonique est élevée, plus elle est instable donc on élargit progressivement notre gaussienne pour la capturer pleinement
             delta_harmonique = delta_base * (0.8 + 0.2 * h)
             
-            # plus une harmonique est haute plus elle est naturellement basse en volume donc on lui donne un poids moindre pour pas donner trop d'importance au bruit ainsi ajoute
+            # plus une harmonique est haute, plus elle est naturellement basse en volume donc on lui donne un poids moindre pour ne pas donner trop d'importance au bruit ainsi ajouté
             amplitude_harmonique = 1.0 / h
             
-            # applique le filtre gaussien sur l'harmonique ainsi traitee
+            # applique le filtre gaussien sur l'harmonique ainsi traitée
             masque_harmonique = amplitude_harmonique * np.exp(-0.5 * ((freqs - freq_harmonique) / delta_harmonique) ** 2)
             masque_total = np.maximum(masque_total, masque_harmonique)
         
@@ -150,7 +152,11 @@ plt.tight_layout()
 plt.savefig("spectrogramme_harmonique.png")
 
 # reconstruction du fichier audio 
+start_time = time.time()
 _, voice_only = istft(spec_filtered, fs)
+cuda.synchronize()  # si besoin, bien que istft soit CPU, ici on synchronise pour homogénéiser la mesure
+end_time = time.time()
+print("Temps d'exécution de l'IFFT (ISTFT) : {:.6f} secondes".format(end_time - start_time))
 voice_only = voice_only / np.max(np.abs(voice_only))
 wavfile.write("voix_extraite_harmonique.wav", fs, (voice_only * 32767).astype(np.int16))
 
